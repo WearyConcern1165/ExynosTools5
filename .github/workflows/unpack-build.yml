@@ -47,7 +47,11 @@ jobs:
       - name: Configure CMake for Android
         run: |
           mkdir -p build-android
-          cmake -S . -B build-android -DCMAKE_TOOLCHAIN_FILE=$NDK_DIR/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-$ANDROID_API -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build-android \
+            -DCMAKE_TOOLCHAIN_FILE=$NDK_DIR/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-$ANDROID_API \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build-android -- -j$(nproc)
@@ -61,9 +65,7 @@ jobs:
             find build-android -name 'libxeno_wrapper*.so' -exec cp {} pkg/usr/lib/libxeno_wrapper.so \; || true
           fi
           mkdir -p pkg/etc/exynostools
-          cat > pkg/etc/exynostools/meta.json <<EOF
-{ "name": "XclipseTools", "version": "v1.2-functional", "description": "Wrapper built from uploaded scaffold ZIP" }
-EOF
+          echo '{ "name": "XclipseTools", "version": "v1.2-functional", "description": "Wrapper built from uploaded scaffold ZIP" }' > pkg/etc/exynostools/meta.json
           tar --zstd -cvf exynostools_v1.2-functional.tar.zst -C pkg .
 
       - name: Upload artifact
