@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.10)
+project(xclipse_wrapper C)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -O2 -Wall")
+
+# Build the shared library
+add_library(xclipse_wrapper SHARED libxeno_wrapper.c)
+
+# Set properties for the library
+set_target_properties(xclipse_wrapper PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    OUTPUT_NAME "libxeno_wrapper"
+)
+
+# Find required libraries
+find_library(log_lib log)
+find_library(dl_lib dl)
+
+# Link libraries
+target_link_libraries(xclipse_wrapper ${log_lib} ${dl_lib})
+
+# Install rules
+install(TARGETS xclipse_wrapper
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
+# Copy configuration file
+install(FILES xclipse_tools.conf
+    DESTINATION etc/xclipse_tools
+)

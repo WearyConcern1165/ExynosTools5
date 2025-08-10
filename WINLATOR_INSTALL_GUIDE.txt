@@ -1,0 +1,100 @@
+===========================================
+XCLIPSE TOOLS - WINLATOR INSTALLATION
+===========================================
+
+Para instalar el wrapper de Exynos 2400 directamente en Winlator:
+
+===========================================
+PASO 1: Crear el archivo compilado
+===========================================
+
+Necesitas compilar el código fuente. Aquí tienes las opciones:
+
+OPCIÓN A - Compilación automática:
+1. Descarga el código fuente del archivo XCLIPSE_TOOLS_COMPLETE_PACKAGE.txt
+2. Ejecuta: ./build_xclipse.sh
+3. Usa el archivo generado: xclipse_tools_winlator.tar.zst
+
+OPCIÓN B - Compilación manual:
+1. Instala Android NDK
+2. Compila: gcc -shared -fPIC libxeno_wrapper.c -o libxeno_wrapper.so
+3. Crea el paquete manualmente
+
+===========================================
+PASO 2: Estructura del paquete Winlator
+===========================================
+
+El archivo debe tener esta estructura:
+```
+xclipse_tools_winlator.tar.zst
+└── usr/
+    └── lib/
+        └── libxeno_wrapper.so
+```
+
+===========================================
+PASO 3: Instalación en Winlator
+===========================================
+
+1. Copia xclipse_tools_winlator.tar.zst a tu directorio de Winlator
+2. Extrae el archivo:
+   tar -xzf xclipse_tools_winlator.tar.zst
+3. El wrapper estará disponible en /usr/lib/libxeno_wrapper.so
+
+===========================================
+PASO 4: Configuración
+===========================================
+
+Crea el archivo de configuración:
+/data/data/com.winlator/files/xclipse_tools.conf
+
+Contenido:
+```
+# Xclipse Tools Configuration
+performance_mode=2
+shader_cache_enabled=1
+bc4_emulation_enabled=1
+debug_logging=1
+```
+
+===========================================
+ARCHIVO LISTO PARA WINLATOR
+===========================================
+
+Si quieres el archivo compilado listo para usar, necesitas:
+
+1. Tener Android NDK instalado
+2. Compilar el código fuente
+3. Crear el paquete tar.zst
+
+O usar un archivo pre-compilado de la comunidad.
+
+===========================================
+SOLUCIÓN RÁPIDA
+===========================================
+
+Para obtener el archivo compilado inmediatamente:
+
+1. Busca en la comunidad de Winlator/Reddit por "xclipse_tools_winlator.tar.zst"
+2. Descarga el archivo pre-compilado
+3. Sigue los pasos de instalación
+
+===========================================
+VERIFICACIÓN
+===========================================
+
+Para verificar que funciona:
+1. El archivo libxeno_wrapper.so debe existir en /usr/lib/
+2. El tamaño debe ser > 0 bytes (no vacío)
+3. Los logs deben mostrar "[XCLIPSE-REAL]" cuando se ejecute
+
+===========================================
+NOTA IMPORTANTE
+===========================================
+
+Este wrapper es específico para Exynos 2400 con Xclipse 940 GPU.
+No funcionará correctamente en otros dispositivos.
+
+===========================================
+FIN
+===========================================
