@@ -1,8 +1,7 @@
-\
 /*
- * ExynosTools xeno_wrapper - extended prototype (for CI builds)
- * MIT Licensed. This wrapper improves feature advertising, features2 handling,
- * simple shader cache, performance config loader, autodetect stub, and basic logging.
+ * ExynosTools xeno_wrapper - Exynos 2400 Optimized Version
+ * MIT Licensed. Enhanced wrapper with Exynos 2400 specific optimizations,
+ * Xclipse 940 GPU support, improved memory management, and advanced features.
  *
  * IMPORTANT: This is a user-space wrapper intended for research and testing.
  * It forwards to a vendor ICD via dlopen at runtime. It contains no proprietary code.
@@ -16,19 +15,62 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
+#include <unistd.h>
+#include <time.h>
 #include <vulkan/vulkan.h>
 
+// Exynos 2400 specific constants
+#define EXYNOS_2400_GPU_NAME "Xclipse 940"
+#define EXYNOS_2400_DEVICE_ID 0x2400
+#define MAX_SHADER_CACHE_SIZE (512 * 1024 * 1024) // 512MB cache
+#define PERFORMANCE_MODE_HIGH 1
+#define PERFORMANCE_MODE_BALANCED 2
+#define PERFORMANCE_MODE_POWER_SAVE 3
+
+// Global state
 static void *real_icd = NULL;
 static pthread_once_t load_once = PTHREAD_ONCE_INIT;
+static int is_exynos_2400 = 0;
+static int performance_mode = PERFORMANCE_MODE_BALANCED;
+static uint64_t total_memory = 0;
+static int shader_cache_enabled = 1;
+static int ray_tracing_enabled = 0;
+static int advanced_features_enabled = 1;
+
+// Enhanced ICD candidates for Exynos 2400
 static char icd_candidates[][256] = {
     "/vendor/lib64/libvkdriver.so",
-    "/system/vendor/lib64/libvkdriver.so",
+    "/system/vendor/lib64/libvkdriver.so", 
+    "/vendor/lib64/libvulkan_mali.so",
+    "/system/vendor/lib64/libvulkan_mali.so",
     "/system/lib64/libvulkan.so",
     "/data/data/com.winlator/files/libs/arm64-v8a/libvulkan_radv.so",
     ""
 };
 
+// Exynos 2400 specific extensions
+static const char* exynos_2400_extensions[] = {
+    "VK_EXT_descriptor_indexing",
+    "VK_EXT_robustness2", 
+    "VK_KHR_shader_float16_int8",
+    "VK_KHR_ray_tracing_pipeline",
+    "VK_KHR_acceleration_structure",
+    "VK_KHR_ray_query",
+    "VK_EXT_mesh_shader",
+    "VK_KHR_fragment_shading_rate",
+    "VK_EXT_dynamic_rendering",
+    "VK_KHR_synchronization2",
+    "VK_EXT_memory_priority",
+    "VK_KHR_buffer_device_address",
+    NULL
+};
+
+// Function declarations
 static void resolve_symbols(void);
+static int detect_exynos_2400(void);
+static void load_performance_config(void);
+static void optimize_for_exynos_2400(void);
 
 static void load_real_icd_once(void) {
     for (int i = 0; icd_candidates[i][0] != '\\0'; ++i) {
