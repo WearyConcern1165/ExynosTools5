@@ -1,4 +1,4 @@
-name: Extract and Upload ExynosTools package (plain zip)
+name: Extract and Upload ExynosTools package (robust)
 
 on:
   workflow_dispatch:
@@ -6,42 +6,84 @@ on:
 jobs:
   extract-and-upload:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Debug - list root files
+        run: |
+          echo "==== ROOT FILES ===="
+          ls -la
+          echo "==== ALL FILES (depth 2) ===="
+          find . -maxdepth 2 -type f -printf "%p %k KB\n" || true
 
       - name: Install deps (zstd, zip, unzip)
         run: |
           sudo apt-get update
           sudo apt-get install -y zstd zip unzip
 
-      - name: Locate uploaded ZIP / tar.zst
+      - name: Locate candidate archive (zip or tar.zst) (robust search)
         run: |
-          # If you uploaded a ZIP containing the tar.zst, unzip it first
-          ZIPFILE=$(ls *.zip 2>/dev/null | head -n1 || true)
-          if [ -n "$ZIPFILE" ]; then
-            echo "Found ZIP: $ZIPFILE"
-            unzip -o "$ZIPFILE" -d scaffold_unpacked || true
-          fi
-          # Find the tar.zst anywhere in repo or unpacked folder
-          TARBZ=$(find . -maxdepth 3 -type f -name '*.tar.zst' | head -n1 || true)
+          set -eux
+          # Prefer direct tar.zst in repo
+          TARBZ=$(find . -maxdepth 5 -type f -name '*.tar.zst' | head -n1 || true)
+          # If no tar.zst, look for zip with expected name
           if [ -z "$TARBZ" ]; then
-            echo "No .tar.zst found in repo root or unpacked zip. Please upload exynostools_v1.2-functional.zip (or the .tar.zst) and re-run."
+            ZP=$(find . -maxdepth 5 -type f -iname 'exynostools*.zip' | head -n1 || true)
+            if [ -n "$ZP" ]; then
+              echo "Found zip: $ZP"
+              unzip -o "$ZP" -d scaffold_unpacked
+              TARBZ=$(find scaffold_unpacked -type f -name '*.tar.zst' | head -n1 || true)
+            fi
+          fi
+          # As final fallback, search anywhere for any zip and try to extract
+          if [ -z "$TARBZ" ]; then
+            ANYZIP=$(find . -maxdepth 5 -type f -iname '*.zip' | head -n1 || true)
+            if [ -n "$ANYZIP" ]; then
+              echo "Found any zip: $ANYZIP (will try to extract)"
+              unzip -o "$ANYZIP" -d scaffold_unpacked_any || true
+              TARBZ=$(find scaffold_unpacked_any -type f -name '*.tar.zst' | head -n1 || true)
+            fi
+          fi
+
+          if [ -z "$TARBZ" ]; then
+            echo "ERROR: No .tar.zst found and no suitable zip with a .tar.zst inside. Upload the 'exynostools_v1.2-functional.zip' or the .tar.zst itself to the repo root and re-run."
+            echo "List of files in repo root for debugging:"; ls -la
             exit 1
           fi
-          echo "Found tar.zst: $TARBZ"
+
+          echo "Found archive to extract: $TARBZ"
           echo "TARBZ=$TARBZ" >> $GITHUB_ENV
 
       - name: Decompress tar.zst and extract tar
         run: |
+          set -eux
           mkdir -p pkg_extracted
-          # Decompress to tar
+          # Decompress .tar.zst to tar
           zstd -d "$TARBZ" -o extracted.tar
-          # Extract tar content into pkg_extracted
+          # Extract tar to pkg_extracted
           tar -xf extracted.tar -C pkg_extracted
-          echo "Listing extracted files:"
-          find pkg_extracted -maxdepth 3 -type f -printf "%p %k KB\n" || true
+          echo "Files extracted (sample):"
+          find pkg_extracted -maxdepth 4 -type f -printf "%p %k KB\n" | head -n200 || true
+
+      - name: Validate package minimal structure
+        run: |
+          echo "Checking for usr/lib and lib files..."
+          if [ -d pkg_extracted/usr/lib ]; then
+            echo "usr/lib exists"
+            ls -la pkg_extracted/usr/lib || true
+          else
+            echo "WARNING: usr/lib not found in extracted package"
+          fi
+          if [ -f pkg_extracted/usr/lib/libxeno_wrapper.so ]; then
+            echo "Found libxeno_wrapper.so (size):"
+            ls -lh pkg_extracted/usr/lib/libxeno_wrapper.so || true
+          else
+            echo "libxeno_wrapper.so not found in usr/lib. List top-level of pkg_extracted:"
+            ls -la pkg_extracted || true
+          fi
 
       - name: Create plain zip of package
         run: |
