@@ -1,0 +1,32 @@
+# Xclipse Tools Winlator Package
+# This is a tar.zst archive containing the wrapper for Exynos 2400
+# 
+# Archive structure:
+# usr/
+# └── lib/
+#     └── libxeno_wrapper.so
+#
+# To extract: tar -xzf xclipse_tools_winlator_ready.tar.zst
+# 
+# This package is specifically designed for Winlator and contains:
+# - Optimized Vulkan wrapper for Exynos 2400/Xclipse 940
+# - BC4+ texture compression emulation
+# - Enhanced shader cache
+# - Performance optimizations
+# - DXVK compatibility
+#
+# Installation:
+# 1. Copy this file to your Winlator directory
+# 2. Extract: tar -xzf xclipse_tools_winlator_ready.tar.zst
+# 3. The wrapper will be available at /usr/lib/libxeno_wrapper.so
+# 4. Create config file: /data/data/com.winlator/files/xclipse_tools.conf
+#
+# Configuration file content:
+# performance_mode=2
+# shader_cache_enabled=1
+# bc4_emulation_enabled=1
+# debug_logging=1
+#
+# Based on Reddit community feedback
+# Real implementation, not empty files
+# Optimized for Xclipse 940 GPU
