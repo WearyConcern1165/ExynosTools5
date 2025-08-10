@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+project(xeno_wrapper C)
+set(CMAKE_C_STANDARD 11)
+add_library(xeno_wrapper SHARED src/xeno_wrapper.c)
+set_target_properties(xeno_wrapper PROPERTIES POSITION_INDEPENDENT_CODE ON)
+find_library(log_lib log)
+target_link_libraries(xeno_wrapper ${log_lib})
