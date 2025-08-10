@@ -1,0 +1,54 @@
+name: Extract and Upload ExynosTools package (plain zip)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install deps (zstd, zip, unzip)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd zip unzip
+
+      - name: Locate uploaded ZIP / tar.zst
+        run: |
+          # If you uploaded a ZIP containing the tar.zst, unzip it first
+          ZIPFILE=$(ls *.zip 2>/dev/null | head -n1 || true)
+          if [ -n "$ZIPFILE" ]; then
+            echo "Found ZIP: $ZIPFILE"
+            unzip -o "$ZIPFILE" -d scaffold_unpacked || true
+          fi
+          # Find the tar.zst anywhere in repo or unpacked folder
+          TARBZ=$(find . -maxdepth 3 -type f -name '*.tar.zst' | head -n1 || true)
+          if [ -z "$TARBZ" ]; then
+            echo "No .tar.zst found in repo root or unpacked zip. Please upload exynostools_v1.2-functional.zip (or the .tar.zst) and re-run."
+            exit 1
+          fi
+          echo "Found tar.zst: $TARBZ"
+          echo "TARBZ=$TARBZ" >> $GITHUB_ENV
+
+      - name: Decompress tar.zst and extract tar
+        run: |
+          mkdir -p pkg_extracted
+          # Decompress to tar
+          zstd -d "$TARBZ" -o extracted.tar
+          # Extract tar content into pkg_extracted
+          tar -xf extracted.tar -C pkg_extracted
+          echo "Listing extracted files:"
+          find pkg_extracted -maxdepth 3 -type f -printf "%p %k KB\n" || true
+
+      - name: Create plain zip of package
+        run: |
+          zip -r exynostools_pkg.zip pkg_extracted
+
+      - name: Upload artifact (plain zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: exynostools_pkg_zip
+          path: exynostools_pkg.zip
